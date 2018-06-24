@@ -1,0 +1,594 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "84d4608d-4cc3-fcbb-57fb-61f07ad7d020"
+      },
+      "source": [
+        "*Poonam Ligade*\n",
+        "\n",
+        "*1st Feb 2017*\n",
+        "\n",
+        "\n",
+        "----------\n",
+        "\n",
+        "\n",
+        "This notebook is like note to self.\n",
+        "\n",
+        "I am trying to understand various components of Artificial Neural Networks aka Deep Learning.\n",
+        "\n",
+        "Hope it might be useful for someone else here.\n",
+        "\n",
+        "I am designing neural net on MNIST handwritten digits images to identify their correct label i.e number in image.\n",
+        "\n",
+        "You must have guessed its an image recognition task.\n",
+        "\n",
+        "MNIST is called Hello world of Deep learning.\n",
+        "\n",
+        "Lets start!!\n",
+        "\n",
+        "This notebook is inspired from [Jeremy's][1] [Deep Learning][2] mooc and [Deep learning with python][3] book by Keras author [Fran\u00e7ois Chollet][4] .\n",
+        "\n",
+        "\n",
+        "  [1]: https://www.linkedin.com/in/howardjeremy/\n",
+        "  [2]: http://course.fast.ai/\n",
+        "  [3]: https://www.manning.com/books/deep-learning-with-python\n",
+        "  [4]: https://research.google.com/pubs/105096.html"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "654456b6-e648-0379-0d66-1cc97af6d00d"
+      },
+      "source": [
+        "**Import all required libraries**\n",
+        "==============================="
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "e5b02688-c589-5a89-e11c-837c6a99eb6e"
+      },
+      "outputs": [],
+      "source": [
+        "    # This Python 3 environment comes with many helpful analytics libraries installed\n",
+        "# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python\n",
+        "# For example, here's several helpful packages to load in \n",
+        "\n",
+        "import numpy as np # linear algebra\n",
+        "import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)\n",
+        "\n",
+        "import matplotlib.pyplot as plt\n",
+        "%matplotlib inline\n",
+        "\n",
+        "from keras.models import Sequential\n",
+        "from keras.layers import Dense , Dropout , Lambda, Flatten\n",
+        "from keras.optimizers import Adam ,RMSprop\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "\n",
+        "# Input data files are available in the \"../input/\" directory.\n",
+        "# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory\n",
+        "\n",
+        "from subprocess import check_output\n",
+        "print(check_output([\"ls\", \"../input\"]).decode(\"utf8\"))\n",
+        "\n",
+        "# Any results you write to the current directory are saved as output."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "22a7fd70-ab61-432d-24cb-93e558414495"
+      },
+      "source": [
+        "**Load Train and Test data**\n",
+        "============================"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "05226b08-226a-1a00-044d-a0e6b2101388"
+      },
+      "outputs": [],
+      "source": [
+        "# create the training & test sets, skipping the header row with [1:]\n",
+        "train = pd.read_csv(\"../input/train.csv\")\n",
+        "print(train.shape)\n",
+        "train.head()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "2ec570a6-b41a-2139-5e0e-4941c4f0a9d0"
+      },
+      "outputs": [],
+      "source": [
+        "test= pd.read_csv(\"../input/test.csv\")\n",
+        "print(test.shape)\n",
+        "test.head()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "1ae10fe0-dde9-7659-f53d-1a1bd625cfb1"
+      },
+      "outputs": [],
+      "source": [
+        "X_train = (train.ix[:,1:].values).astype('float32') # all pixel values\n",
+        "y_train = train.ix[:,0].values.astype('int32') # only labels i.e targets digits\n",
+        "X_test = test.values.astype('float32')"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "250b1126-ce1d-6d3f-9736-2504f7a1e098"
+      },
+      "outputs": [],
+      "source": [
+        "X_train"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "e0f15f8a-ac08-540a-58db-dab989cc687c"
+      },
+      "outputs": [],
+      "source": [
+        "y_train"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "c2c91588-5547-353a-7f92-39600027438e"
+      },
+      "source": [
+        "The output variable is an integer from 0 to 9. This is a **multiclass** classification problem."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "60957d82-c76f-4822-28ff-def7011a34fa"
+      },
+      "source": [
+        "Lets look at 3 images from data set with their labels."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "1541678d-a08b-d2b2-1e1e-eabf882baaec"
+      },
+      "outputs": [],
+      "source": [
+        "#Convert train datset to (num_images, img_rows, img_cols) format \n",
+        "X_train = X_train.reshape(X_train.shape[0], 28, 28)\n",
+        "\n",
+        "for i in range(6, 9):\n",
+        "    plt.subplot(330 + (i+1))\n",
+        "    plt.imshow(X_train[i], cmap=plt.get_cmap('gray'))\n",
+        "    plt.title(y_train[i]);"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "6be2f3e9-42eb-85b6-9162-c25e4d706155"
+      },
+      "outputs": [],
+      "source": [
+        "#expand 1 more dimention as 1 for colour channel gray\n",
+        "X_train = X_train.reshape(X_train.shape[0], 28, 28,1)\n",
+        "X_train.shape"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "6949468c-fd27-19c5-15c7-0b357a961003"
+      },
+      "outputs": [],
+      "source": [
+        "X_test = X_test.reshape(X_test.shape[0], 28, 28,1)\n",
+        "X_test.shape"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "1232c385-3cb2-56fd-4d1d-f027df7bc78e"
+      },
+      "source": [
+        "**Preprocessing the digit images**\n",
+        "=================================="
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "6fcc1f9e-1586-e393-49ba-50c73564e0ed"
+      },
+      "source": [
+        "**Feature Standardization**\n",
+        "-------------------------------------\n",
+        "\n",
+        "It is important preprocessing step.\n",
+        "It is used to centre the data around zero mean and unit variance."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "a3f837ef-0373-8d91-46e6-30992cf73166"
+      },
+      "outputs": [],
+      "source": [
+        "mean_px = X_train.mean().astype(np.float32)\n",
+        "std_px = X_train.std().astype(np.float32)\n",
+        "\n",
+        "def standardize(x): \n",
+        "    return (x-mean_px)/std_px"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "725c55fc-9742-a63c-9822-c67ab0c773ee"
+      },
+      "source": [
+        "*One Hot encoding of labels.*\n",
+        "-----------------------------\n",
+        "\n",
+        "A one-hot vector is a vector which is 0 in most dimensions, and 1 in a single dimension. In this case, the nth digit will be represented as a vector which is 1 in the nth dimension. \n",
+        "\n",
+        "For example, 3 would be [0,0,0,1,0,0,0,0,0,0]."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "c879f076-b3dd-6cb1-e2d9-2f404f2ed132"
+      },
+      "outputs": [],
+      "source": [
+        "from keras.utils.np_utils import to_categorical\n",
+        "y_train= to_categorical(y_train)\n",
+        "num_classes = y_train.shape[1]\n",
+        "num_classes"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "4d76fb04-57fc-e802-6d91-06ece552686b"
+      },
+      "source": [
+        "Lets plot 10th label."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "1c927e75-08d2-d539-54f3-71ab0308fec1"
+      },
+      "outputs": [],
+      "source": [
+        "plt.title(y_train[9])\n",
+        "plt.plot(y_train[9])\n",
+        "plt.xticks(range(10));"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "4e130661-9f09-d9a9-d49b-7274ef13927f"
+      },
+      "source": [
+        "Oh its 3 !"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "6a89dcdd-7b68-6ed1-2c39-b3a1edb3e7be"
+      },
+      "source": [
+        "**Designing Neural Network Architecture**\n",
+        "========================================="
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "39107235-d87a-af4d-44fb-80c9c3aa0212"
+      },
+      "outputs": [],
+      "source": [
+        "# fix random seed for reproducibility\n",
+        "seed = 43\n",
+        "np.random.seed(seed)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "a8b65f54-398b-267f-e31a-313210450f54"
+      },
+      "source": [
+        "*Linear Model*\n",
+        "--------------"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "5dbe450c-845f-aaa2-dbde-21414a91d8c1"
+      },
+      "outputs": [],
+      "source": [
+        "from keras.models import  Sequential\n",
+        "from keras.layers.core import  Lambda , Dense, Flatten, Dropout\n",
+        "from keras.callbacks import EarlyStopping\n",
+        "from keras.layers import BatchNormalization, Convolution2D , MaxPooling2D"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "5c3f674f-f3fc-9614-f2d4-056c3e3ad633"
+      },
+      "source": [
+        "Lets create a simple model from Keras Sequential layer.\n",
+        "\n",
+        "1. Lambda layer performs simple arithmetic operations like sum, average, exponentiation etc.\n",
+        "\n",
+        " In 1st layer of the model we have to define input dimensions of our data in (rows,columns,colour channel) format.\n",
+        " (In theano colour channel comes first)\n",
+        "\n",
+        "\n",
+        "2. Flatten will transform input into 1D array.\n",
+        "\n",
+        "\n",
+        "3. Dense is fully connected layer that means all neurons in previous layers will be connected to all neurons in fully connected layer.\n",
+        " In the last layer we have to specify output dimensions/classes of the model.\n",
+        " Here it's 10, since we have to output 10 different digit labels."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "a2c27783-3cfa-e907-4749-1e340a513f26"
+      },
+      "outputs": [],
+      "source": [
+        "model= Sequential()\n",
+        "model.add(Lambda(standardize,input_shape=(28,28,1)))\n",
+        "model.add(Flatten())\n",
+        "model.add(Dense(10, activation='softmax'))\n",
+        "print(\"input shape \",model.input_shape)\n",
+        "print(\"output shape \",model.output_shape)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "260645fb-61b7-68e9-6826-047b97436c14"
+      },
+      "source": [
+        "***Compile network***\n",
+        "-------------------\n",
+        "\n",
+        "Before making network ready for training we have to make sure to add below things:\n",
+        "\n",
+        " 1.  A loss function: to measure how good the network is\n",
+        "    \n",
+        " 2.  An optimizer: to update network as it sees more data and reduce loss\n",
+        "    value\n",
+        "    \n",
+        " 3.  Metrics: to monitor performance of network"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "9d1d1af9-b2a8-e3b9-6eaf-100d08fe83aa"
+      },
+      "outputs": [],
+      "source": [
+        "from keras.optimizers import RMSprop\n",
+        "model.compile(optimizer=RMSprop(lr=0.001),\n",
+        " loss='categorical_crossentropy',\n",
+        " metrics=['accuracy'])"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "db3b4be6-4f72-c6cc-65cd-b45978db2462"
+      },
+      "outputs": [],
+      "source": [
+        "from keras.preprocessing import image\n",
+        "gen = image.ImageDataGenerator()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "9071d720-da50-8530-e9f3-1f0c37aac7ff"
+      },
+      "outputs": [],
+      "source": [
+        "from sklearn.model_selection import train_test_split\n",
+        "X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.10, random_state=42)\n",
+        "batches = gen.flow(X_train, y_train, batch_size=64)\n",
+        "val_batches=gen.flow(X_val, y_val, batch_size=64)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "20e08e2a-a394-bb70-69f1-be0fdab4f9ab"
+      },
+      "outputs": [],
+      "source": [
+        "history=model.fit_generator(batches, batches.n, nb_epoch=1, \n",
+        "                    validation_data=val_batches, nb_val_samples=val_batches.n)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "9f344366-c372-0b04-b7e0-860778d4bfd3"
+      },
+      "outputs": [],
+      "source": [
+        "history_dict = history.history\n",
+        "history_dict.keys()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "df40f5fc-586a-1fae-025e-ee508a8d9b71"
+      },
+      "outputs": [],
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "%matplotlib inline\n",
+        "loss_values = history_dict['loss']\n",
+        "val_loss_values = history_dict['val_loss']\n",
+        "epochs = range(1, len(loss_values) + 1)\n",
+        "\n",
+        "# \"bo\" is for \"blue dot\"\n",
+        "plt.plot(epochs, loss_values, 'bo')\n",
+        "# b+ is for \"blue crosses\"\n",
+        "plt.plot(epochs, val_loss_values, 'b+')\n",
+        "plt.xlabel('Epochs')\n",
+        "plt.ylabel('Loss')\n",
+        "\n",
+        "plt.show()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "1ed6b756-00c2-d08c-c596-0ce496ec3d04"
+      },
+      "outputs": [],
+      "source": [
+        "plt.clf()   # clear figure\n",
+        "acc_values = history_dict['acc']\n",
+        "val_acc_values = history_dict['val_acc']\n",
+        "\n",
+        "plt.plot(epochs, acc_values, 'bo')\n",
+        "plt.plot(epochs, val_acc_values, 'b+')\n",
+        "plt.xlabel('Epochs')\n",
+        "plt.ylabel('Accuracy')\n",
+        "\n",
+        "plt.show()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "e9c49f42-26af-73dc-9061-90c50c06f16e"
+      },
+      "outputs": [],
+      "source": [
+        "model.optimizer.lr=0.01\n",
+        "gen = image.ImageDataGenerator()\n",
+        "batches = gen.flow(X_train, y_train, batch_size=64)\n",
+        "history=model.fit_generator(batches, batches.n, nb_epoch=1)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "_cell_guid": "c2841d54-f3dd-1ee8-a30d-4457dec0a67a"
+      },
+      "outputs": [],
+      "source": [
+        "predictions = model.predict_classes(X_test, verbose=0)\n",
+        "\n",
+        "submissions=pd.DataFrame({\"ImageId\": list(range(1,len(predictions)+1)),\n",
+        "                         \"Label\": predictions})\n",
+        "submissions.to_csv(\"DR.csv\", index=False, header=True)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "d74ac4ce-9fd5-f8d7-fa1c-b6b64b25e882"
+      },
+      "source": [
+        "More to come . Please upvote if you find it useful."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "_cell_guid": "0e6213b0-fc56-658d-46e3-4a5dcb7148ce"
+      },
+      "source": [
+        "You can increase number of epochs on your local machine to get better results."
+      ]
+    }
+  ],
+  "metadata": {
+    "_change_revision": 0,
+    "_is_fork": false,
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.6.0"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
