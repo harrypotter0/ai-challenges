@@ -1,1 +1,1 @@
-# kaggle-competitions
+# ai-competitions
